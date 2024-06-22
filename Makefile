@@ -21,6 +21,10 @@ pubsub: $(TARGET_BUILD)
 .PHONY: build
 build: pubsub
 
+.PHONY: install
+install: build
+	sudo install $(TARGET_BIN) /usr/local/bin
+
 .PHONY: clean
 clean:
 	rm -rf $(TARGET_DIR)
