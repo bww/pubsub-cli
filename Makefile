@@ -2,11 +2,17 @@
 export GOOS    := $(shell go env GOOS)
 export GOARCH  := $(shell go env GOARCH)
 
-PRODUCT      := pubsub
+PRODUCT := pubsub-cli
+
+TARGET   		 ?= pubsub
 TARGET_DIR   ?= $(PWD)/target
 TARGET_NAME  ?= $(GOOS)_$(GOARCH)
 TARGET_BUILD := $(TARGET_DIR)/$(TARGET_NAME)
-TARGET_BIN   := $(TARGET_BUILD)/bin/$(PRODUCT)
+TARGET_BIN   := $(TARGET_BUILD)/bin/$(TARGET)
+
+RELEASE_ARCHIVE := $(PRODUCT)-$(GOOS)-$(GOARCH).tgz
+RELEASE_PACKAGE := $(TARGET_BUILD)
+RELEASE_BIN 		:= $(TARGET_NAME)/bin/$(TARGET)
 
 .PHONY: all
 all: build
@@ -20,6 +26,10 @@ pubsub: $(TARGET_BUILD)
 
 .PHONY: build
 build: pubsub
+
+.PHONY: archive
+archive: build
+	(cd $(TARGET_DIR) && tar -zcf $(RELEASE_ARCHIVE) $(RELEASE_BIN))
 
 .PHONY: install
 install: build
