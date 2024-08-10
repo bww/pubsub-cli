@@ -12,7 +12,7 @@ TARGET_BIN   := $(TARGET_BUILD)/bin/$(TARGET)
 
 RELEASE_ARCHIVE := $(PRODUCT)-$(GOOS)-$(GOARCH).tgz
 RELEASE_PACKAGE := $(TARGET_BUILD)
-RELEASE_BIN 		:= $(TARGET_NAME)/bin/$(TARGET)
+RELEASE_BIN 		:= bin/$(TARGET)
 
 .PHONY: all
 all: build
@@ -29,7 +29,7 @@ build: pubsub
 
 .PHONY: archive
 archive: build
-	(cd $(TARGET_DIR) && tar -zcf $(RELEASE_ARCHIVE) $(RELEASE_BIN))
+	(cd $(TARGET_BUILD) && tar -zcf $(RELEASE_ARCHIVE) $(RELEASE_BIN))
 
 .PHONY: install
 install: build
