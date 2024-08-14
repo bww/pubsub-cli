@@ -47,16 +47,19 @@ func publish(cmd string, args []string) error {
 }
 
 func publishData(cmd string, args []string) error {
-	var attrPairs flagList
+	var attrPairs []string
+	var topicName string
+	var count int
+
+	cxt := context.Background()
+
 	cmdline := newFlags(cmd)
-	var (
-		fTopic = cmdline.String("topic", "", "The topic to operate on.")
-		fCount = cmdline.Int("count", 0, "Repeatedly publish the input message <count> times.")
-	)
-	cmdline.Var(&attrPairs, "attr", "Define attribute(s) to be set on enqueued messages, specified as 'key=value'. You may provide this flag multiple times.")
+	cmdline.StringVar(&topicName, "topic", "", "The topic to operate on.")
+	cmdline.IntVar(&count, "count", 0, "Repeatedly publish the input message <count> times.")
+	cmdline.StringSliceVar(&attrPairs, "attr", nil, "Define attribute(s) to be set on enqueued messages, specified as 'key=value'. You may provide this flag multiple times.")
 	cmdline.Parse(args)
 
-	if *fTopic == "" {
+	if topicName == "" {
 		return fmt.Errorf("No topic defined")
 	}
 	if cmdline.Project == "" {
@@ -75,15 +78,15 @@ func publishData(cmd string, args []string) error {
 		}
 	}
 
-	client, err := pubsub.NewClient(context.Background(), cmdline.Project)
+	client, err := pubsub.NewClient(cxt, cmdline.Project)
 	if err != nil {
 		return err
 	} else {
 		defer client.Close()
 	}
 
-	topic := client.Topic(*fTopic)
-	exists, err := topic.Exists(context.Background())
+	topic := client.Topic(topicName)
+	exists, err := topic.Exists(cxt)
 	if err != nil {
 		return err
 	} else if !exists {
@@ -91,11 +94,7 @@ func publishData(cmd string, args []string) error {
 	}
 	defer topic.Stop()
 
-	count := *fCount
-	if count < 1 {
-		count = 1
-	}
-
+	count = max(count, 1)
 	var tbytes, tmsg uint64
 	for _, e := range cmdline.Args() {
 		var r io.Reader
@@ -116,18 +115,13 @@ func publishData(cmd string, args []string) error {
 		}
 
 		for i := 0; i < count; i++ {
-			res := topic.Publish(context.Background(), &pubsub.Message{Attributes: attrs, Data: data})
-			if err != nil {
-				return fmt.Errorf("Could not publish: %v", err)
-			}
-
-			serverId, err := res.Get(context.Background())
+			res := topic.Publish(cxt, &pubsub.Message{Attributes: attrs, Data: data})
+			serverId, err := res.Get(cxt)
 			if err != nil {
 				return fmt.Errorf("Publish failed: %v", err)
 			}
-
 			if cmdline.Verbose {
-				fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), *fTopic, serverId)
+				fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
 			} else {
 				fmt.Print(".")
 			}
@@ -137,39 +131,48 @@ func publishData(cmd string, args []string) error {
 		tmsg++
 	}
 	if !cmdline.Verbose {
-		fmt.Printf("\n--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), *fTopic)
+		fmt.Printf("\n--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 	}
 
 	return nil
 }
 
 func publishAvro(cmd string, args []string) error {
-	cmdline := newFlags(cmd)
 	var (
-		fTopic          = cmdline.String("topic", "", "The topic to operate on.")
-		fFieldId        = cmdline.String("field:id", "", "The name of the Avro record field that the publish timestamp should be taken from. The value of this field will be be set as an attribute on each message named -attr:id.")
-		fFieldTimestamp = cmdline.String("field:timestamp", "", "The name of the Avro record field that the record identifier should be taken from. The value of this field will be be set as an attribute on each message named -attr:timestamp.")
-		fAttrId         = cmdline.String("attr:id", "id", "The name of the attribute to be used for the record identifier field, if available.")
-		fAttrTimestamp  = cmdline.String("attr:timestamp", "ts", "The name of the attribute to be used for the record timestamp field, if available.")
+		topicName      string
+		fieldId        string
+		fieldTimestamp string
+		attrId         string
+		attrTimestamp  string
 	)
+
+	cxt := context.Background()
+
+	cmdline := newFlags(cmd)
+	cmdline.StringVar(&topicName, "topic", "", "The topic to operate on.")
+	cmdline.StringVar(&fieldId, "field:id", "", "The name of the Avro record field that the publish timestamp should be taken from. The value of this field will be be set as an attribute on each message named -attr:id.")
+	cmdline.StringVar(&fieldTimestamp, "field:timestamp", "", "The name of the Avro record field that the record identifier should be taken from. The value of this field will be be set as an attribute on each message named -attr:timestamp.")
+	cmdline.StringVar(&attrId, "attr:id", "id", "The name of the attribute to be used for the record identifier field, if available.")
+	cmdline.StringVar(&attrTimestamp, "attr:timestamp", "ts", "The name of the attribute to be used for the record timestamp field, if available.")
+
 	cmdline.Parse(args)
 
-	if *fTopic == "" {
+	if topicName == "" {
 		return fmt.Errorf("No topic defined")
 	}
 	if cmdline.Project == "" {
 		return fmt.Errorf("No project defined")
 	}
 
-	client, err := pubsub.NewClient(context.Background(), cmdline.Project)
+	client, err := pubsub.NewClient(cxt, cmdline.Project)
 	if err != nil {
 		return err
 	} else {
 		defer client.Close()
 	}
 
-	topic := client.Topic(*fTopic)
-	exists, err := topic.Exists(context.Background())
+	topic := client.Topic(topicName)
+	exists, err := topic.Exists(cxt)
 	if err != nil {
 		return err
 	} else if !exists {
@@ -211,30 +214,30 @@ func publishAvro(cmd string, args []string) error {
 
 			attrs := make(map[string]string)
 			if m, ok := item.(map[string]interface{}); ok {
-				if f := *fFieldId; f != "" {
-					if v := m[f]; v != nil {
-						attrs[*fAttrId] = stringer(v)
+				if fieldId != "" {
+					if v := m[fieldId]; v != nil {
+						attrs[attrId] = stringer(v)
 					}
 				}
-				if f := *fFieldTimestamp; f != "" {
-					if v := m[f]; v != nil {
-						attrs[*fAttrTimestamp] = stringer(v)
+				if fieldTimestamp != "" {
+					if v := m[fieldTimestamp]; v != nil {
+						attrs[attrTimestamp] = stringer(v)
 					}
 				}
 			}
 
-			res := topic.Publish(context.Background(), &pubsub.Message{Attributes: attrs, Data: data})
+			res := topic.Publish(cxt, &pubsub.Message{Attributes: attrs, Data: data})
 			if err != nil {
 				return fmt.Errorf("Could not publish: %v", err)
 			}
 
-			serverId, err := res.Get(context.Background())
+			serverId, err := res.Get(cxt)
 			if err != nil {
 				return fmt.Errorf("Publish failed: %v", err)
 			}
 
 			if cmdline.Verbose {
-				fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), *fTopic, serverId)
+				fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
 				if len(attrs) > 0 {
 					fmt.Printf("    %s\n", dumpAttrs(attrs))
 				}
@@ -246,7 +249,7 @@ func publishAvro(cmd string, args []string) error {
 			tmsg++
 		}
 		if !cmdline.Verbose {
-			fmt.Printf("\n--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), *fTopic)
+			fmt.Printf("\n--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 		}
 	}
 

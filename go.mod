@@ -7,6 +7,7 @@ require (
 	github.com/bww/go-util v1.13.2
 	github.com/dustin/go-humanize v1.0.0
 	github.com/linkedin/goavro/v2 v2.9.7
+	github.com/spf13/pflag v1.0.5
 	google.golang.org/api v0.74.0
 	google.golang.org/grpc v1.45.0
 )

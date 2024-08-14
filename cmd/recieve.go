@@ -53,38 +53,42 @@ func receive(cmd string, args []string) error {
 }
 
 func receiveData(cmd string, args []string) error {
-	cmdline := newFlags(cmd)
-
 	var (
-		fCount      = cmdline.Int("count", 0, "The number of messages to receive. If count is less than one, process unlimited messages.")
-		fWait       = cmdline.Duration("wait", 0, "When receiving unlimited messages, wait this duration for messages before canceling.")
-		fNoAck      = cmdline.Bool("no-ack", false, "Don't acknowledge received messages.")
-		fSubscr     = cmdline.String("subscription", "", "The subscription to receive messages from.")
-		fConcurrent = cmdline.Int("concurrency", 1, "The maximum outstanding messages.")
-		fOutput     = cmdline.String("output", string(Pretty), "The format used to output messages (none|pretty|json)")
+		count      int
+		wait       time.Duration
+		noAck      bool
+		subscrName string
+		concurrent int
+		output     string
 	)
 
+	cxt := context.Background()
+
+	cmdline := newFlags(cmd)
+	cmdline.IntVar(&count, "count", 0, "The number of messages to receive. If count is less than one, process unlimited messages.")
+	cmdline.DurationVar(&wait, "wait", 0, "When receiving unlimited messages, wait this duration for messages before canceling.")
+	cmdline.BoolVar(&noAck, "no-ack", false, "Don't acknowledge received messages.")
+	cmdline.StringVar(&subscrName, "subscription", "", "The subscription to receive messages from.")
+	cmdline.IntVar(&concurrent, "concurrency", 1, "The maximum outstanding messages.")
+	cmdline.StringVar(&output, "output", string(Pretty), "The format used to output messages (none|pretty|json)")
+
 	cmdline.Parse(args)
-	datafmt := Format(*fOutput)
-	count := *fCount
+	datafmt := Format(output)
 
-	maxFlight := *fConcurrent
-	if maxFlight < 1 {
-		maxFlight = 1
-	}
-	maxRoutine := 1
-	if maxFlight > 1 {
-		maxRoutine = pubsub.DefaultReceiveSettings.NumGoroutines
+	concurrent = max(1, concurrent)
+	routines := 1
+	if concurrent > 1 {
+		routines = pubsub.DefaultReceiveSettings.NumGoroutines
 	}
 
-	if *fSubscr == "" {
+	if subscrName == "" {
 		return fmt.Errorf("No subscription")
 	}
 	if cmdline.Project == "" {
 		return fmt.Errorf("No project defined")
 	}
 
-	cxt, cancel := context.WithCancel(context.Background())
+	cxt, cancel := context.WithCancel(cxt)
 	defer cancel()
 
 	client, err := pubsub.NewClient(cxt, cmdline.Project)
@@ -94,16 +98,16 @@ func receiveData(cmd string, args []string) error {
 		defer client.Close()
 	}
 
-	sub := client.Subscription(*fSubscr)
-	sub.ReceiveSettings.MaxOutstandingMessages = maxFlight
-	sub.ReceiveSettings.NumGoroutines = maxRoutine
+	sub := client.Subscription(subscrName)
+	sub.ReceiveSettings.MaxOutstandingMessages = concurrent
+	sub.ReceiveSettings.NumGoroutines = routines
 	sub.ReceiveSettings.Synchronous = true
 
 	exists, err := sub.Exists(cxt)
 	if err != nil {
 		return err
 	} else if !exists {
-		return fmt.Errorf("No such subscription: %s", *fSubscr)
+		return fmt.Errorf("No such subscription: %s", subscrName)
 	}
 
 	mqueue := make(chan string)
@@ -151,7 +155,7 @@ func receiveData(cmd string, args []string) error {
 
 		mqueue <- b.String()
 
-		if !*fNoAck {
+		if !noAck {
 			msg.Ack()
 		}
 
@@ -164,25 +168,25 @@ func receiveData(cmd string, args []string) error {
 		if err != nil {
 			return err
 		}
-		if count > 0 && *fWait > 0 {
-			fmt.Printf("Receiving up to %d messages from %s (%s) for %v...\n", count, sub.ID(), conf.Topic.ID(), *fWait)
+		if count > 0 && wait > 0 {
+			fmt.Printf("Receiving up to %d messages from %s (%s) for %v...\n", count, sub.ID(), conf.Topic.ID(), wait)
 		} else if count > 0 {
 			fmt.Printf("Receiving %d messages from %s (%s)...\n", count, sub.ID(), conf.Topic.ID())
-		} else if *fWait > 0 {
-			fmt.Printf("Receiving from %s (%s) for %v...\n", sub.ID(), conf.Topic.ID(), *fWait)
+		} else if wait > 0 {
+			fmt.Printf("Receiving from %s (%s) for %v...\n", sub.ID(), conf.Topic.ID(), wait)
 		} else {
 			fmt.Printf("Receiving forever from %s (%s)...\n", sub.ID(), conf.Topic.ID())
 		}
 	}
 
-	var wait sync.WaitGroup
+	var wg sync.WaitGroup
 
 	go func() {
-		wait.Add(1)
-		defer wait.Done()
+		wg.Add(1)
+		defer wg.Done()
 		var deadline <-chan time.Time
 		for {
-			if v := *fWait; v > 0 {
+			if v := wait; v > 0 {
 				deadline = time.After(v)
 			} else {
 				deadline = make(chan time.Time) // will never be ready
@@ -192,7 +196,7 @@ func receiveData(cmd string, args []string) error {
 				return
 			case <-deadline:
 				if cmdline.Verbose {
-					wqueue <- fmt.Sprintf("Canceling after receiving for %v...\n", *fWait)
+					wqueue <- fmt.Sprintf("Canceling after receiving for %v...\n", wait)
 				}
 				cancel()
 				return
@@ -213,8 +217,8 @@ func receiveData(cmd string, args []string) error {
 	}()
 
 	go func() {
-		wait.Add(1)
-		defer wait.Done()
+		wg.Add(1)
+		defer wg.Done()
 		for {
 			select {
 			case <-cxt.Done():
@@ -235,7 +239,7 @@ func receiveData(cmd string, args []string) error {
 		}
 	}
 
-	wait.Wait()
+	wg.Wait()
 
 	close(mqueue)
 	close(wqueue)
@@ -245,7 +249,7 @@ func receiveData(cmd string, args []string) error {
 	}
 
 	if cmdline.Verbose {
-		fmt.Printf("--> Received %d messages (%s) from %s\n", tmsg, humanize.Bytes(uint64(tbytes)), *fSubscr)
+		fmt.Printf("--> Received %d messages (%s) from %s\n", tmsg, humanize.Bytes(uint64(tbytes)), subscrName)
 	}
 	return nil
 }

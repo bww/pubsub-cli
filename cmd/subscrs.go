@@ -78,13 +78,13 @@ func listSubscriptions(cmd string, args []string) error {
 }
 
 func createSubscription(cmd string, args []string) error {
+	var topicName string
+
 	cmdline := newFlags(cmd)
-	var (
-		fTopic = cmdline.String("topic", "", "The topic to associate the subscription with.")
-	)
+	cmdline.StringVar(&topicName, "topic", "", "The topic to associate the subscription with.")
 	cmdline.Parse(args)
 
-	if *fTopic == "" {
+	if topicName == "" {
 		return fmt.Errorf("No topic")
 	}
 	if cmdline.Project == "" {
@@ -98,7 +98,7 @@ func createSubscription(cmd string, args []string) error {
 		defer client.Close()
 	}
 
-	topic := client.Topic(*fTopic)
+	topic := client.Topic(topicName)
 	exists, err := topic.Exists(context.Background())
 	if err != nil {
 		return err
