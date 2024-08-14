@@ -16,7 +16,7 @@ func main() {
 		fmt.Println("--> Dumping routines on ^C")
 		debugutil.DumpRoutinesOnInterrupt()
 	}
-	return Root.Execute()
+	Root.Execute()
 }
 
 var (
@@ -49,4 +49,7 @@ func init() {
 	Root.PersistentFlags().BoolVar(&quiet, "quiet", false, "Be extra quiet")
 
 	Root.AddCommand(publish)
+	Root.AddCommand(receive)
+	Root.AddCommand(topics)
+	Root.AddCommand(subscriptions)
 }
