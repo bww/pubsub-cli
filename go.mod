@@ -7,6 +7,7 @@ require (
 	github.com/bww/go-util v1.13.2
 	github.com/dustin/go-humanize v1.0.0
 	github.com/linkedin/goavro/v2 v2.9.7
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/api v0.74.0
 	google.golang.org/grpc v1.45.0
@@ -23,6 +24,7 @@ require (
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/googleapis/gax-go/v2 v2.3.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20220421235706-1d1ef9303861 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
