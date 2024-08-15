@@ -96,9 +96,9 @@ var publishData = &cobra.Command{
 					cobra.CheckErr(fmt.Errorf("Publish failed: %v", err))
 				}
 				if verbose {
-					fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
+					logf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
 				} else if quiet == 0 {
-					fmt.Print(".")
+					log(".")
 					dots++
 				}
 			}
@@ -107,10 +107,10 @@ var publishData = &cobra.Command{
 			tmsg++
 		}
 		if quiet > 0 && dots > 0 {
-			fmt.Println()
+			logln()
 		}
 		if !verbose {
-			fmt.Printf("--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
+			logf("--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 		}
 	},
 }
@@ -154,7 +154,7 @@ var publishAvro = &cobra.Command{
 			ocfr, err := goavro.NewOCFReader(r)
 			cobra.CheckErr(err)
 
-			var tbytes, tmsg uint64
+			var tbytes, tmsg, dots uint64
 			codec := ocfr.Codec()
 			for ocfr.Scan() {
 				item, err := ocfr.Read()
@@ -188,19 +188,23 @@ var publishAvro = &cobra.Command{
 				}
 
 				if verbose {
-					fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
+					logf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
 					if len(attrs) > 0 {
-						fmt.Printf("    %s\n", dumpAttrs(attrs))
+						logf("    %s\n", dumpAttrs(attrs))
 					}
 				} else {
-					fmt.Print(".")
+					log(".")
+					dots++
 				}
 
 				tbytes += uint64(len(data))
 				tmsg++
 			}
+			if quiet > 0 && dots > 0 {
+				logln()
+			}
 			if !verbose {
-				fmt.Printf("\n--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
+				logf("--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 			}
 		}
 	},

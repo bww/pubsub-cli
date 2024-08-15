@@ -50,3 +50,4 @@ $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --wait 3s --verbose
 $PUBSUB publish data --topic $PUBSUB_TOPIC "$me_home/data.txt" --quiet
 $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 1 --wait 1s
 $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 1 --wait 1s || echo "None, as expected"
+$PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 0 --wait 1s || echo "None, as expected"

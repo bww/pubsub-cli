@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/spf13/cobra"
@@ -43,7 +42,7 @@ var listTopics = &cobra.Command{
 			} else {
 				cobra.CheckErr(err)
 			}
-			fmt.Printf("--> %s\n", topic)
+			logf("--> %s\n", topic)
 		}
 	},
 }
@@ -63,13 +62,13 @@ var createTopic = &cobra.Command{
 			cobra.CheckErr(err)
 
 			if exists {
-				fmt.Printf("--> [exists] %s\n", e)
+				logf("--> [exists] %s\n", e)
 				continue
 			}
 
 			topic, err = client.CreateTopic(context.Background(), e)
 			cobra.CheckErr(err)
-			fmt.Printf("--> [create] %s\n", e)
+			logf("--> [create] %s\n", e)
 		}
 	},
 }
@@ -89,13 +88,13 @@ var deleteTopic = &cobra.Command{
 			cobra.CheckErr(err)
 
 			if !exists {
-				fmt.Printf("--> [missing] %s\n", e)
+				logf("--> [missing] %s\n", e)
 				continue
 			}
 
 			err = topic.Delete(context.Background())
 			cobra.CheckErr(err)
-			fmt.Printf("--> [deleted] %s\n", e)
+			logf("--> [deleted] %s\n", e)
 		}
 	},
 }

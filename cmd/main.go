@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -13,7 +12,7 @@ const stdin = "-"
 
 func main() {
 	if os.Getenv("PUBSUB_DEBUG_ROUTINES") != "" {
-		fmt.Println("--> Dumping routines on ^C")
+		logln("--> Dumping routines on ^C")
 		debugutil.DumpRoutinesOnInterrupt()
 	}
 	Root.Execute()

@@ -149,17 +149,17 @@ var receiveData = &cobra.Command{
 			conf, err := sub.Config(cxt)
 			cobra.CheckErr(err)
 			if expect >= 0 && wait > 0 {
-				fmt.Printf("Expecting %d messages from %s (%s) for %v...\n", expect, sub.ID(), conf.Topic.ID(), wait)
+				logf("Expecting %d messages from %s (%s) for %v...\n", expect, sub.ID(), conf.Topic.ID(), wait)
 			} else if count >= 0 && wait > 0 {
-				fmt.Printf("Receiving up to %d messages from %s (%s) for %v...\n", count, sub.ID(), conf.Topic.ID(), wait)
+				logf("Receiving up to %d messages from %s (%s) for %v...\n", count, sub.ID(), conf.Topic.ID(), wait)
 			} else if expect >= 0 {
-				fmt.Printf("Expected %d messages from %s (%s)...\n", expect, sub.ID(), conf.Topic.ID())
+				logf("Expected %d messages from %s (%s)...\n", expect, sub.ID(), conf.Topic.ID())
 			} else if count >= 0 {
-				fmt.Printf("Receiving %d messages from %s (%s)...\n", count, sub.ID(), conf.Topic.ID())
+				logf("Receiving %d messages from %s (%s)...\n", count, sub.ID(), conf.Topic.ID())
 			} else if wait > 0 {
-				fmt.Printf("Receiving from %s (%s) for %v...\n", sub.ID(), conf.Topic.ID(), wait)
+				logf("Receiving from %s (%s) for %v...\n", sub.ID(), conf.Topic.ID(), wait)
 			} else {
-				fmt.Printf("Receiving forever from %s (%s)...\n", sub.ID(), conf.Topic.ID())
+				logf("Receiving forever from %s (%s)...\n", sub.ID(), conf.Topic.ID())
 			}
 		}
 
@@ -180,7 +180,7 @@ var receiveData = &cobra.Command{
 					return
 				case <-deadline:
 					if verbose {
-						wqueue <- fmt.Sprintf("Canceling after receiving for %v...\n", wait)
+						logf("Canceling after receiving for %v...\n", wait)
 					}
 					cancel()
 					return
@@ -248,10 +248,10 @@ var receiveData = &cobra.Command{
 			cobra.CheckErr(fmt.Errorf("Expected: %d messages; received: %d", expect, tmsg))
 		}
 		if quiet > 0 && dots > 0 {
-			fmt.Println()
+			logln()
 		}
 		if verbose {
-			fmt.Printf("--> Received %d messages (%s) from %s\n", tmsg, humanize.Bytes(uint64(tbytes)), subscrName)
+			logf("--> Received %d messages (%s) from %s\n", tmsg, humanize.Bytes(uint64(tbytes)), subscrName)
 		}
 	},
 }
