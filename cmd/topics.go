@@ -50,7 +50,7 @@ var listTopics = &cobra.Command{
 
 var createTopic = &cobra.Command{
 	Use:     "new",
-	Aliases: []string{"create"},
+	Aliases: []string{"create", "make"},
 	Short:   "Create a topic",
 	Run: func(cmd *cobra.Command, args []string) {
 		client, err := pubsub.NewClient(context.Background(), projectName)

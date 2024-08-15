@@ -19,12 +19,12 @@ func init() {
 	listSubscriptions.MarkFlagRequired("project")
 	subscriptions.AddCommand(listSubscriptions)
 
+	createSubscriptions.Flags().StringVar(&topicName, "topic", "", "The topic to operate on.")
 	createSubscriptions.MarkFlagRequired("project")
 	createSubscriptions.MarkFlagRequired("topic")
 	subscriptions.AddCommand(createSubscriptions)
 
 	deleteSubscriptions.MarkFlagRequired("project")
-	deleteSubscriptions.MarkFlagRequired("topic")
 	subscriptions.AddCommand(deleteSubscriptions)
 }
 
@@ -58,7 +58,7 @@ var listSubscriptions = &cobra.Command{
 
 var createSubscriptions = &cobra.Command{
 	Use:     "new",
-	Aliases: []string{"create"},
+	Aliases: []string{"create", "make"},
 	Short:   "Create a subscription",
 	Run: func(cmd *cobra.Command, args []string) {
 		cxt := context.Background()

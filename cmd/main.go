@@ -43,10 +43,10 @@ var Root = &cobra.Command{
 }
 
 func init() {
-	Root.PersistentFlags().StringVar(&projectName, "project", "", "The GCP project we are operating on")
-	Root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Be more verbose")
-	Root.PersistentFlags().BoolVar(&debug, "debug", false, "Be extremely verbose")
-	Root.PersistentFlags().BoolVar(&quiet, "quiet", false, "Be extra quiet")
+	Root.PersistentFlags().StringVar(&projectName, "project", os.Getenv("PUBSUB_PROJECT"), "The GCP project we are operating on")
+	Root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", os.Getenv("PUBSUB_VERBOSE") != "", "Be more verbose")
+	Root.PersistentFlags().BoolVar(&debug, "debug", os.Getenv("PUBSUB_DEBUG") != "", "Be extremely verbose")
+	Root.PersistentFlags().BoolVar(&quiet, "quiet", os.Getenv("PUBSUB_QUIET") != "", "Be extra quiet")
 
 	Root.AddCommand(publish)
 	Root.AddCommand(receive)

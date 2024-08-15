@@ -46,11 +46,8 @@ var publishData = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cxt := context.Background()
 
-		if topicName == "" {
-			cobra.CheckErr("No topic defined")
-		}
-		if projectName == "" {
-			cobra.CheckErr("No project defined")
+		if len(args) == 0 {
+			cobra.CheckErr("No data provided; specify files to publish as arguments; the file name '-' refers to STDIN")
 		}
 
 		var attrs map[string]string
