@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -75,7 +74,7 @@ var publishData = &cobra.Command{
 		defer topic.Stop()
 
 		count = max(count, 1)
-		var tbytes, tmsg uint64
+		var tbytes, tmsg, dots uint64
 		for _, e := range args {
 			var r io.Reader
 			if e != stdin {
@@ -87,7 +86,7 @@ var publishData = &cobra.Command{
 				r = os.Stdin
 			}
 
-			data, err := ioutil.ReadAll(r)
+			data, err := io.ReadAll(r)
 			cobra.CheckErr(err)
 
 			for i := 0; i < count; i++ {
@@ -98,16 +97,20 @@ var publishData = &cobra.Command{
 				}
 				if verbose {
 					fmt.Printf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
-				} else {
+				} else if quiet == 0 {
 					fmt.Print(".")
+					dots++
 				}
 			}
 
 			tbytes += uint64(len(data))
 			tmsg++
 		}
+		if quiet > 0 && dots > 0 {
+			fmt.Println()
+		}
 		if !verbose {
-			fmt.Printf("\n--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
+			fmt.Printf("--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 		}
 	},
 }

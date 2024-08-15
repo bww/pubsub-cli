@@ -91,7 +91,7 @@ var receiveData = &cobra.Command{
 		mqueue := make(chan message)
 		wqueue := make(chan string)
 
-		var tbytes, tproc, tmsg int64
+		var tbytes, tproc, tmsg, dots int64
 		recv := func(cxt context.Context, msg *pubsub.Message) {
 			b := &strings.Builder{}
 
@@ -99,6 +99,7 @@ var receiveData = &cobra.Command{
 				// don't print anything...
 			} else if quiet > 0 || datafmt == None {
 				b.WriteString(".")
+				dots++
 			} else if datafmt == JSON {
 				json.NewEncoder(b).Encode(msg)
 			} else {
@@ -246,7 +247,7 @@ var receiveData = &cobra.Command{
 		if expect >= 0 && tmsg != int64(expect) {
 			cobra.CheckErr(fmt.Errorf("Expected: %d messages; received: %d", expect, tmsg))
 		}
-		if quiet == 1 && tmsg > 0 {
+		if quiet > 0 && dots > 0 {
 			fmt.Println()
 		}
 		if verbose {
