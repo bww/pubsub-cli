@@ -210,6 +210,9 @@ var receiveData = &cobra.Command{
 							wqueue <- m.Dsp
 						} else {
 							m.Nack() // we won't consume the message
+							if verbose {
+								logf("Refused message: %s", m.Dsp)
+							}
 						}
 						if res+1 > int64(expect) {
 							cancel()
@@ -221,6 +224,9 @@ var receiveData = &cobra.Command{
 							wqueue <- m.Dsp
 						} else {
 							m.Nack() // we won't consume the message
+							if verbose {
+								logf("Refused message: %s", m.Dsp)
+							}
 						}
 						if res+1 > int64(count) {
 							cancel()
@@ -265,7 +271,7 @@ var receiveData = &cobra.Command{
 		close(wqueue)
 
 		if expect >= 0 && tproc != int64(expect) {
-			cobra.CheckErr(fmt.Errorf("Expected: %d messages; received: %d", expect, tmsg))
+			cobra.CheckErr(fmt.Errorf("Expected: %d messages; received: %d (accepted %d)", expect, tproc, tmsg))
 		}
 		if quiet > 0 && dots > 0 {
 			logln()

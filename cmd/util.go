@@ -34,14 +34,16 @@ func dumpAttrs(a map[string]string) string {
 	return b.String()
 }
 
+const prefix = "pubsub: "
+
 func logf(f string, a ...any) {
-	fmt.Fprintf(os.Stderr, f, a...)
+	fmt.Fprintf(os.Stderr, prefix+f, a...)
 }
 
 func log(m ...any) {
-	fmt.Fprint(os.Stderr, m...)
+	fmt.Fprint(os.Stderr, append([]any{prefix}, m...)...)
 }
 
 func logln(m ...any) {
-	fmt.Fprintln(os.Stderr, m...)
+	fmt.Fprintln(os.Stderr, append([]any{prefix}, m...)...)
 }
