@@ -38,6 +38,7 @@ fi
 export PUBSUB_PROJECT=pubsub
 export PUBSUB_TOPIC=pubsub-integrate
 export PUBSUB_SUBSCRIPTION=pubsub-integrate-subscription
+export PUBSUB_VERBOSE=true
 
 # create the topic and subscription we'll use
 $PUBSUB topic new $PUBSUB_TOPIC
@@ -49,5 +50,8 @@ $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --wait 3s --verbose
 # publish a messgae
 $PUBSUB publish data --topic $PUBSUB_TOPIC "$me_home/data.txt" --quiet
 $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 1 --wait 1s
-$PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 1 --wait 1s || echo "None, as expected"
+$PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 1 --wait 1s || echo "None"
 $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 0 --wait 1s && echo "None, as expected"
+
+$PUBSUB publish data --topic $PUBSUB_TOPIC "$me_home/data.txt" --quiet
+$PUBSUB_DEBUG receive data --subscription $PUBSUB_SUBSCRIPTION --expect 0 --wait 1s || echo "Got one, we don't want that"

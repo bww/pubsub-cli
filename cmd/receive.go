@@ -46,7 +46,7 @@ var receive = &cobra.Command{
 func init() {
 	receiveData.Flags().IntVar(&count, "count", -1, "The maximum number of messages to receive. If count is less than one, process unlimited messages.")
 	receiveData.Flags().IntVar(&expect, "expect", -1, "The number of messages we expect to receive. Expect is effectively --count with an assertion. It is used in combination with --wait to assert a certain number of messages were received before the deadline.")
-	receiveData.Flags().DurationVar(&wait, "wait", 0, "When receiving unlimited messages, wait this duration for messages before canceling.")
+	receiveData.Flags().DurationVar(&wait, "wait", 0, "When receiving unlimited messages, wait this duration since the last message received for messages before canceling.")
 	receiveData.Flags().BoolVar(&noAck, "no-ack", false, "Don't acknowledge received messages.")
 	receiveData.Flags().StringVar(&subscrName, "subscription", "", "The subscription to receive messages from.")
 	receiveData.Flags().IntVar(&concurrent, "concurrency", 1, "The maximum outstanding messages.")
@@ -134,7 +134,10 @@ var receiveData = &cobra.Command{
 				}
 			}
 
-			mqueue <- message{
+			select {
+			case <-cxt.Done():
+				return
+			case mqueue <- message{
 				Msg: msg,
 				Dsp: b.String(),
 				Ack: func() {
@@ -142,6 +145,7 @@ var receiveData = &cobra.Command{
 					atomic.AddInt64(&tbytes, int64(len(msg.Data)))
 					atomic.AddInt64(&tmsg, 1)
 				},
+			}:
 			}
 		}
 
@@ -177,6 +181,7 @@ var receiveData = &cobra.Command{
 				}
 				select {
 				case <-cxt.Done():
+					cancel()
 					return
 				case <-deadline:
 					if verbose {
@@ -186,6 +191,7 @@ var receiveData = &cobra.Command{
 					return
 				case m, ok := <-mqueue:
 					if !ok {
+						cancel()
 						return
 					}
 					res := atomic.AddInt64(&tproc, 1)
@@ -222,9 +228,11 @@ var receiveData = &cobra.Command{
 			for {
 				select {
 				case <-cxt.Done():
+					cancel()
 					return
 				case m, ok := <-wqueue:
 					if !ok {
+						cancel()
 						return
 					}
 					fmt.Print(m)
@@ -244,7 +252,7 @@ var receiveData = &cobra.Command{
 		close(mqueue)
 		close(wqueue)
 
-		if expect >= 0 && tmsg != int64(expect) {
+		if expect >= 0 && tproc != int64(expect) {
 			cobra.CheckErr(fmt.Errorf("Expected: %d messages; received: %d", expect, tmsg))
 		}
 		if quiet > 0 && dots > 0 {
