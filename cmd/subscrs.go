@@ -5,166 +5,114 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/spf13/cobra"
 	"google.golang.org/api/iterator"
 )
 
-const subscriptionsUsage = `
-Usage: pubsub subscriptions <subcommand> [options]
-       pubsub subscriptions help
-
-Commands:
-  create  Create a new subscription.
-  list    List subscriptions
-  delete  Delete a subscription.
-  help    Display this help information.
-`
-
-func subscriptions(cmd string, args []string) error {
-	if len(args) < 1 {
-		fmt.Println(subscriptionsUsage)
-		return nil
-	}
-
-	cmd, args = args[0], args[1:]
-	switch cmd {
-	case "ls", "list":
-		return listSubscriptions(cmd, args)
-	case "mk", "create":
-		return createSubscription(cmd, args)
-	case "rm", "delete":
-		return deleteSubscription(cmd, args)
-	case "help":
-		fallthrough
-	default:
-		fmt.Println(subscriptionsUsage)
-	}
-
-	return nil
+var subscriptions = &cobra.Command{
+	Use:     "subscription",
+	Aliases: []string{"subscriptions", "subs", "sub"},
+	Short:   "Manage subscriptions",
 }
 
-func listSubscriptions(cmd string, args []string) error {
-	cmdline := newFlags(cmd)
-	cmdline.Parse(args)
+func init() {
+	listSubscriptions.MarkFlagRequired("project")
+	subscriptions.AddCommand(listSubscriptions)
 
-	if cmdline.Project == "" {
-		return fmt.Errorf("No project defined")
-	}
+	createSubscriptions.Flags().StringVar(&topicName, "topic", "", "The topic to operate on.")
+	createSubscriptions.MarkFlagRequired("project")
+	createSubscriptions.MarkFlagRequired("topic")
+	subscriptions.AddCommand(createSubscriptions)
 
-	client, err := pubsub.NewClient(context.Background(), cmdline.Project)
-	if err != nil {
-		return err
-	} else {
-		defer client.Close()
-	}
-
-	iter := client.Subscriptions(context.Background())
-	for {
-		sub, err := iter.Next()
-		if err == iterator.Done {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		conf, err := sub.Config(context.Background())
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("--> %s { topic: %v, deadline: %v, retain: %v }\n", sub, conf.Topic, conf.AckDeadline, conf.RetainAckedMessages)
-	}
-
-	return nil
+	deleteSubscriptions.MarkFlagRequired("project")
+	subscriptions.AddCommand(deleteSubscriptions)
 }
 
-func createSubscription(cmd string, args []string) error {
-	cmdline := newFlags(cmd)
-	var (
-		fTopic = cmdline.String("topic", "", "The topic to associate the subscription with.")
-	)
-	cmdline.Parse(args)
+var listSubscriptions = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List available subscriptions",
+	Run: func(cmd *cobra.Command, args []string) {
+		cxt := context.Background()
 
-	if *fTopic == "" {
-		return fmt.Errorf("No topic")
-	}
-	if cmdline.Project == "" {
-		return fmt.Errorf("No project defined")
-	}
-
-	client, err := pubsub.NewClient(context.Background(), cmdline.Project)
-	if err != nil {
-		return err
-	} else {
+		client, err := pubsub.NewClient(cxt, projectName)
+		cobra.CheckErr(err)
 		defer client.Close()
-	}
 
-	topic := client.Topic(*fTopic)
-	exists, err := topic.Exists(context.Background())
-	if err != nil {
-		return err
-	} else if !exists {
-		return fmt.Errorf("No such topic: %v", topic)
-	}
+		iter := client.Subscriptions(cxt)
+		for {
+			sub, err := iter.Next()
+			if err == iterator.Done {
+				break
+			} else {
+				cobra.CheckErr(err)
+			}
 
-	for _, e := range cmdline.Args() {
-		sub := client.Subscription(e)
+			conf, err := sub.Config(cxt)
+			cobra.CheckErr(err)
 
-		exists, err := sub.Exists(context.Background())
-		if err != nil {
-			return err
+			logf("--> %s { topic: %v, deadline: %v, retain: %v }\n", sub, conf.Topic, conf.AckDeadline, conf.RetainAckedMessages)
 		}
-
-		if exists {
-			fmt.Printf("--> [exists] %s\n", e)
-			continue
-		}
-
-		sub, err = client.CreateSubscription(context.Background(), e, pubsub.SubscriptionConfig{Topic: topic})
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("--> [create] %s\n", e)
-	}
-
-	return nil
+	},
 }
 
-func deleteSubscription(cmd string, args []string) error {
-	cmdline := newFlags(cmd)
-	cmdline.Parse(args)
+var createSubscriptions = &cobra.Command{
+	Use:     "new",
+	Aliases: []string{"create", "make"},
+	Short:   "Create a subscription",
+	Run: func(cmd *cobra.Command, args []string) {
+		cxt := context.Background()
 
-	if cmdline.Project == "" {
-		return fmt.Errorf("No project defined")
-	}
-
-	client, err := pubsub.NewClient(context.Background(), cmdline.Project)
-	if err != nil {
-		return err
-	} else {
+		client, err := pubsub.NewClient(cxt, projectName)
+		cobra.CheckErr(err)
 		defer client.Close()
-	}
 
-	for _, e := range cmdline.Args() {
-		sub := client.Subscription(e)
-
-		exists, err := sub.Exists(context.Background())
-		if err != nil {
-			return err
-		}
-
+		topic := client.Topic(topicName)
+		exists, err := topic.Exists(cxt)
+		cobra.CheckErr(err)
 		if !exists {
-			fmt.Printf("--> [missing] %s\n", e)
-			continue
+			cobra.CheckErr(fmt.Errorf("No such topic: %v", topic))
 		}
 
-		err = sub.Delete(context.Background())
-		if err != nil {
-			return err
+		for _, e := range args {
+			sub := client.Subscription(e)
+			exists, err := sub.Exists(cxt)
+			cobra.CheckErr(err)
+
+			if exists {
+				logf("--> [exists] %s\n", e)
+				continue
+			}
+
+			sub, err = client.CreateSubscription(cxt, e, pubsub.SubscriptionConfig{Topic: topic})
+			cobra.CheckErr(err)
+			logf("--> [create] %s\n", e)
 		}
+	},
+}
 
-		fmt.Printf("--> [deleted] %s\n", e)
-	}
+var deleteSubscriptions = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm"},
+	Short:   "Delete a subscription",
+	Run: func(cmd *cobra.Command, args []string) {
+		client, err := pubsub.NewClient(context.Background(), projectName)
+		cobra.CheckErr(err)
+		defer client.Close()
 
-	return nil
+		for _, e := range args {
+			sub := client.Subscription(e)
+			exists, err := sub.Exists(context.Background())
+			cobra.CheckErr(err)
+
+			if !exists {
+				logf("--> [missing] %s\n", e)
+				continue
+			}
+
+			err = sub.Delete(context.Background())
+			cobra.CheckErr(err)
+			logf("--> [deleted] %s\n", e)
+		}
+	},
 }

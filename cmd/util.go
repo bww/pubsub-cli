@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -31,4 +32,16 @@ func dumpAttrs(a map[string]string) string {
 		n++
 	}
 	return b.String()
+}
+
+func logf(f string, a ...any) {
+	fmt.Fprintf(os.Stderr, f, a...)
+}
+
+func log(m ...any) {
+	fmt.Fprint(os.Stderr, m...)
+}
+
+func logln(m ...any) {
+	fmt.Fprintln(os.Stderr, m...)
 }

@@ -1,63 +1,54 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"time"
 
-	"github.com/bww/go-util/v1/debug"
+	debugutil "github.com/bww/go-util/v1/debug"
+	"github.com/spf13/cobra"
 )
 
 const stdin = "-"
 
 func main() {
-	err := app()
-	if err != nil {
-		fmt.Printf("*** %v\n", err)
-		os.Exit(1)
+	if os.Getenv("PUBSUB_DEBUG_ROUTINES") != "" {
+		logln("--> Dumping routines on ^C")
+		debugutil.DumpRoutinesOnInterrupt()
 	}
+	Root.Execute()
 }
 
-const usage = `
-Usage: pubsub <command> [options]
-       pubsub -h
+var (
+	projectName string
+	subscrName  string
+	topicName   string
 
-Commands:
-  topic         Manage topics.
-  subscription  Manage subscriptions.
-  publish       Publish messages to a topic.
-  receive       Receive messages from a subscription.
-  help          Display this help information.
-`
+	attrPairs  []string
+	count      int
+	expect     int
+	wait       time.Duration
+	noAck      bool
+	concurrent int
+	output     string
 
-func app() error {
-	app := os.Args[0]
+	debug   bool
+	verbose bool
+	quiet   int
+)
 
-	if os.Getenv("PUBSUB_DEBUG_ROUTINES") != "" {
-		fmt.Println("--> Dumping routines on ^C")
-		debug.DumpRoutinesOnInterrupt()
-	}
+var Root = &cobra.Command{
+	Use:   "pubsub",
+	Short: "A CLI interface to the GCP PubSub service", Long: "A CLI interface to the GCP PubSub service",
+}
 
-	args := os.Args[1:]
-	if len(args) < 1 {
-		fmt.Println(usage)
-		return nil
-	}
+func init() {
+	Root.PersistentFlags().StringVar(&projectName, "project", os.Getenv("PUBSUB_PROJECT"), "The GCP project we are operating on")
+	Root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", os.Getenv("PUBSUB_VERBOSE") != "", "Be more verbose")
+	Root.PersistentFlags().BoolVar(&debug, "debug", os.Getenv("PUBSUB_DEBUG") != "", "Be extremely verbose")
+	Root.PersistentFlags().CountVar(&quiet, "quiet", "Be extra quiet")
 
-	cmd, args := args[0], args[1:]
-	switch cmd {
-	case "pub", "publish":
-		return publish(app, args)
-	case "pull", "receive":
-		return receive(app, args)
-	case "top", "topic":
-		return topics(app, args)
-	case "sub", "subscription":
-		return subscriptions(app, args)
-	case "help":
-		fallthrough
-	default:
-		fmt.Println(usage)
-	}
-
-	return nil
+	Root.AddCommand(publish)
+	Root.AddCommand(receive)
+	Root.AddCommand(topics)
+	Root.AddCommand(subscriptions)
 }
