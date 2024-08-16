@@ -54,4 +54,4 @@ $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 1 --wait 1s ||
 $PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 0 --wait 1s && echo "None, as expected"
 
 $PUBSUB publish data --topic $PUBSUB_TOPIC "$me_home/data.txt" --quiet
-$PUBSUB_DEBUG receive data --subscription $PUBSUB_SUBSCRIPTION --expect 0 --wait 1s || echo "Got one, we don't want that"
+$PUBSUB receive data --subscription $PUBSUB_SUBSCRIPTION --expect 0 --wait 1s || echo "Got one, we don't want that"

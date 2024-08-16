@@ -26,14 +26,21 @@ const (
 )
 
 type message struct {
-	Msg *pubsub.Message
-	Dsp string
-	Ack func()
+	Msg  *pubsub.Message
+	Dsp  string
+	ack  func()
+	nack func()
 }
 
-func (m message) Mack() {
+func (m message) Ack() {
 	if !noAck {
-		m.Ack()
+		m.ack()
+	}
+}
+
+func (m message) Nack() {
+	if !noAck {
+		m.nack()
 	}
 }
 
@@ -140,11 +147,12 @@ var receiveData = &cobra.Command{
 			case mqueue <- message{
 				Msg: msg,
 				Dsp: b.String(),
-				Ack: func() {
+				ack: func() {
 					msg.Ack()
 					atomic.AddInt64(&tbytes, int64(len(msg.Data)))
 					atomic.AddInt64(&tmsg, 1)
 				},
+				nack: msg.Nack,
 			}:
 			}
 		}
@@ -198,8 +206,10 @@ var receiveData = &cobra.Command{
 					switch {
 					case expect >= 0:
 						if res <= int64(expect) {
-							m.Mack() // we've consumed the message
+							m.Ack() // we've consumed the message
 							wqueue <- m.Dsp
+						} else {
+							m.Nack() // we won't consume the message
 						}
 						if res+1 > int64(expect) {
 							cancel()
@@ -207,15 +217,17 @@ var receiveData = &cobra.Command{
 						}
 					case count >= 0:
 						if res <= int64(count) {
-							m.Mack() // we've consumed the message
+							m.Ack() // we've consumed the message
 							wqueue <- m.Dsp
+						} else {
+							m.Nack() // we won't consume the message
 						}
 						if res+1 > int64(count) {
 							cancel()
 							return
 						}
 					default:
-						m.Mack() // we've consumed the message
+						m.Ack() // we've consumed the message
 						wqueue <- m.Dsp
 					}
 				}
@@ -243,7 +255,7 @@ var receiveData = &cobra.Command{
 		err = sub.Receive(cxt, recv)
 		if err != nil && err != context.Canceled {
 			if s, ok := status.FromError(err); !ok || s.Code() != codes.Canceled {
-				cobra.CheckErr(fmt.Errorf("Could not create backup: %w", err))
+				cobra.CheckErr(fmt.Errorf("Could not receive: %w", err))
 			}
 		}
 
