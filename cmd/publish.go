@@ -96,7 +96,7 @@ var publishData = &cobra.Command{
 					cobra.CheckErr(fmt.Errorf("Publish failed: %v", err))
 				}
 				if verbose {
-					logf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
+					logf("Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
 				} else if quiet == 0 {
 					log(".")
 					dots++
@@ -110,7 +110,7 @@ var publishData = &cobra.Command{
 			logln()
 		}
 		if !verbose {
-			logf("--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
+			logf("Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 		}
 	},
 }
@@ -188,7 +188,7 @@ var publishAvro = &cobra.Command{
 				}
 
 				if verbose {
-					logf("--> Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
+					logf("Published %s to %s (%s)\n", humanize.Bytes(uint64(len(data))), topicName, serverId)
 					if len(attrs) > 0 {
 						logf("    %s\n", dumpAttrs(attrs))
 					}
@@ -204,7 +204,7 @@ var publishAvro = &cobra.Command{
 				logln()
 			}
 			if !verbose {
-				logf("--> Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
+				logf("Published %d messages (%s) to %s\n", tmsg, humanize.Bytes(tbytes), topicName)
 			}
 		}
 	},

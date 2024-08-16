@@ -12,7 +12,7 @@ const stdin = "-"
 
 func main() {
 	if os.Getenv("PUBSUB_DEBUG_ROUTINES") != "" {
-		logln("--> Dumping routines on ^C")
+		logln("Dumping routines on ^C")
 		debugutil.DumpRoutinesOnInterrupt()
 	}
 	Root.Execute()

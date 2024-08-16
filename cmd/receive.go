@@ -277,7 +277,7 @@ var receiveData = &cobra.Command{
 			logln()
 		}
 		if verbose {
-			logf("--> Received %d messages (%s) from %s\n", tmsg, humanize.Bytes(uint64(tbytes)), subscrName)
+			logf("Received %d messages (%s) from %s\n", tmsg, humanize.Bytes(uint64(tbytes)), subscrName)
 		}
 	},
 }

@@ -51,7 +51,7 @@ var listSubscriptions = &cobra.Command{
 			conf, err := sub.Config(cxt)
 			cobra.CheckErr(err)
 
-			logf("--> %s { topic: %v, deadline: %v, retain: %v }\n", sub, conf.Topic, conf.AckDeadline, conf.RetainAckedMessages)
+			logf("%s { topic: %v, deadline: %v, retain: %v }\n", sub, conf.Topic, conf.AckDeadline, conf.RetainAckedMessages)
 		}
 	},
 }
@@ -80,13 +80,13 @@ var createSubscriptions = &cobra.Command{
 			cobra.CheckErr(err)
 
 			if exists {
-				logf("--> [exists] %s\n", e)
+				logf("[exists] %s\n", e)
 				continue
 			}
 
 			sub, err = client.CreateSubscription(cxt, e, pubsub.SubscriptionConfig{Topic: topic})
 			cobra.CheckErr(err)
-			logf("--> [create] %s\n", e)
+			logf("[create] %s\n", e)
 		}
 	},
 }
@@ -106,7 +106,7 @@ var deleteSubscriptions = &cobra.Command{
 			cobra.CheckErr(err)
 
 			if !exists {
-				logf("--> [missing] %s\n", e)
+				logf("[missing] %s\n", e)
 				continue
 			}
 
