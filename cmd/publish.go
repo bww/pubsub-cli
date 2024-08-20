@@ -22,14 +22,14 @@ var publish = &cobra.Command{
 }
 
 func init() {
-	publishData.Flags().StringVar(&topicName, "topic", "", "The topic to operate on.")
+	publishData.Flags().StringVar(&topicName, "topic", os.Getenv("PUBSUB_TOPIC"), "The topic to operate on.")
 	publishData.Flags().IntVar(&count, "count", 0, "Repeatedly publish the input message <count> times.")
 	publishData.Flags().StringSliceVar(&attrPairs, "attr", nil, "Define attribute(s) to be set on enqueued messages, specified as 'key=value'. You may provide this flag multiple times.")
 	publishData.MarkFlagRequired("project")
 	publishData.MarkFlagRequired("topic")
 	publish.AddCommand(publishData)
 
-	publishAvro.Flags().StringVar(&topicName, "topic", "", "The topic to operate on.")
+	publishAvro.Flags().StringVar(&topicName, "topic", os.Getenv("PUBSUB_TOPIC"), "The topic to operate on.")
 	publishAvro.Flags().StringVar(&fieldId, "field:id", "", "The name of the Avro record field that the publish timestamp should be taken from. The value of this field will be be set as an attribute on each message named -attr:id.")
 	publishAvro.Flags().StringVar(&fieldTimestamp, "field:timestamp", "", "The name of the Avro record field that the record identifier should be taken from. The value of this field will be be set as an attribute on each message named -attr:timestamp.")
 	publishAvro.Flags().StringVar(&attrId, "attr:id", "id", "The name of the attribute to be used for the record identifier field, if available.")

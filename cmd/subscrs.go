@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/spf13/cobra"
@@ -19,7 +20,7 @@ func init() {
 	listSubscriptions.MarkFlagRequired("project")
 	subscriptions.AddCommand(listSubscriptions)
 
-	createSubscriptions.Flags().StringVar(&topicName, "topic", "", "The topic to operate on.")
+	createSubscriptions.Flags().StringVar(&topicName, "topic", os.Getenv("PUBSUB_TOPIC"), "The topic to operate on.")
 	createSubscriptions.MarkFlagRequired("project")
 	createSubscriptions.MarkFlagRequired("topic")
 	subscriptions.AddCommand(createSubscriptions)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -55,7 +56,7 @@ func init() {
 	receiveData.Flags().IntVar(&expect, "expect", -1, "The number of messages we expect to receive. Expect is effectively --count with an assertion. It is used in combination with --wait to assert a certain number of messages were received before the deadline.")
 	receiveData.Flags().DurationVar(&wait, "wait", 0, "When receiving unlimited messages, wait this duration since the last message received for messages before canceling.")
 	receiveData.Flags().BoolVar(&noAck, "no-ack", false, "Don't acknowledge received messages.")
-	receiveData.Flags().StringVar(&subscrName, "subscription", "", "The subscription to receive messages from.")
+	receiveData.Flags().StringVar(&subscrName, "subscription", os.Getenv("PUBSUB_SUBSCRIPTION"), "The subscription to receive messages from.")
 	receiveData.Flags().IntVar(&concurrent, "concurrency", 1, "The maximum outstanding messages.")
 	receiveData.Flags().StringVar(&output, "output", string(Pretty), "The format used to output messages (none|pretty|json)")
 	receiveData.MarkFlagRequired("project")
